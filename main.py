@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pprint import pformat
-from HRMS_chatbot import qa_chain  
+from HRMSchatbot import qa_chain  
 import re
 
 app = FastAPI()

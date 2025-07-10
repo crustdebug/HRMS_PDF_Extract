@@ -1,44 +1,42 @@
-"""import subprocess
-
-subprocess.run(["pip", "install", "-r", "requirements.txt"])
-# In[2]:
-"""
-
-import warnings
-warnings.filterwarnings("ignore")
-import os
-import sentence_transformers
-from tqdm import tqdm
-from dotenv import load_dotenv
-from langchain_community.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain_community.vectorstores import FAISS
+from langchain.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
+import sentence_transformers
+from langchain.chains import ConversationalRetrievalChain, RetrievalQA
+from tqdm import tqdm
+from langchain.llms import Together
+from langchain.prompts import PromptTemplate
+from dotenv import load_dotenv
 from langchain.memory import ConversationBufferMemory
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.chains import ConversationalRetrievalChain
-from langchain_community.llms import Together
-from langchain.prompts import PromptTemplate
-
-
+import os
+from langchain.document_loaders import TextLoader
 
 embedding = HuggingFaceEmbeddings(model="BAAI/bge-large-en-v1.5" ,encode_kwargs={"normalize_embeddings": True})
-db = FAISS.load_local("faiss_index", embedding , allow_dangerous_deserialization=True)
+db = FAISS.load_local("faiss_index_updated", embedding,allow_dangerous_deserialization=True)
 
+
+
+loader = TextLoader("output_tex1.txt")
+documents = loader.load()
+documents[0].page_content
+
+splitter = CharacterTextSplitter(chunk_size=600,chunk_overlap=100, separator= '.')
+docs = splitter.split_documents(documents)
+
+db.save_local("faiss_index_updated")
 
 
 
 load_dotenv()
 api_key = os.getenv("together_api_key")
 
-
-llm = Together( 
+llm = Together(
     model="lgai/exaone-3-5-32b-instruct",
+    temperature=0.5,
     together_api_key=api_key
-    
 )
-
-
 
 retriever = db.as_retriever(search_kwargs={"k": 3, "fetch_k": 10})
 prompt = PromptTemplate(
@@ -48,11 +46,10 @@ You are an intelligent and professional HR assistant for a corporate organizatio
 You are talking to the employee of NHLML about whom you don't know anything except this.
 
 Your responsibilities include:
-- Understand the question and then provide accurate answers strictly
+- Answering the question according to the policy
 - Do not answer questions which are not related to HR or company policies.(e.g., food, pets, travel, entertainment,or any such casual request etc.).
 - In case of unsurety,just reply with "Sorry that is not mentioned in the policy".
 - Do not respond after simple acknowledgments like "okay", "thanks", "ok", etc.
-
 
 Context:
 {context}
@@ -72,9 +69,14 @@ memory = ConversationBufferMemory(
     k=2
 )
 
-qa_chain = ConversationalRetrievalChain.from_llm(
-    llm=llm,  
+qa_chain = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="stuff",
     retriever=retriever,
-    combine_docs_chain_kwargs={"prompt": prompt},
-    memory=memory
+    return_source_documents=False,
+    chain_type_kwargs={"prompt": prompt}
 )
+
+# query = "bhai maternity leave ka kya scene hai"
+# response = qa_chain.run(query)
+# print("Bot:", response) 
