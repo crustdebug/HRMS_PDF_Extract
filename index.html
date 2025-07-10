@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HR Chatbot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #333;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    #response {
+      margin-top: 20px;
+      background: #eaeaea;
+      padding: 15px;
+      border-radius: 5px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>HR Assistant</h2>
+    <input type="text" id="query" placeholder="e.g. How many sick leaves do I get?">
+    <button onclick="askQuestion()">Ask</button>
+    <div id="response"></div>
+  </div>
+
+ 
+ <script>
+
+  async function askQuestion() {
+    const query = document.getElementById("query").value.trim();
+    const responseDiv = document.getElementById("response");
+
+    if (!query) return;
+
+    responseDiv.innerHTML = "Thinking...";
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ query })
+      });
+
+      const data = await res.json();
+
+      let botResponse = "No response";
+      if (data.response) {
+        botResponse = data.response.replace(/\n/g, "<br>");
+        responseDiv.innerHTML = `<strong>You:</strong> ${query}<br><strong>Bot:</strong> ${botResponse}`;
+      } else if (data.error) {
+        botResponse = `Error: ${data.error}`;
+        responseDiv.innerHTML = `<strong>Error:</strong> ${data.error}`;
+      }
+
+    } catch (err) {
+      responseDiv.innerHTML = `<strong>Network Error:</strong> ${err.message}`;
+    }
+  }
+</script>
+
+
+
+</body>
+</html>

@@ -1,0 +1,30 @@
+Password Protection Policy
+1.1 Title, Commencement and Applicability
+This Policy will be called the ‘NHLML Password Protection Policy’. The Policy comes
+into force effective from date of joining of executive. This policy will be appliable to
+establish standard for creation of strong passwords and protection of those passwords
+This policy will be appliable for all the personnel are responsible for an account(or any
+form of access that supports or requires a password) on any system that resides at any
+NNHLML facility, has access to the NHLML network, or stores any non-public
+NHLML information..
+1.2 Guidelines to create and manage Password for Users
+> Users must use a separate, unique password for each of their work related
+accounts.
+> Users may not use any work related passwords for their own, personal accounts
+> All the users are advised to change their passwords frequently to enable the
+security of the IT system and prevent any unauthorized intrusion activity
+> Passwords must not be inserted into email messages, Alliance cases or other forms
+of electronic communication, nor revealed over the phone to anyone.
+> Passwords may be stored only in "password managers" authorized by the
+organization.
+> Do not use the "Remember Password" feature of applications (for example, web
+browsers).
+> Any user suspecting that his/her password may have been compromised must
+report the incident and change all passwords.
+> The Password shall contain 14 characters
+> Users every work account should have a different, unique password.
+> The password should not contain personal information such as birthdates,
+addresses, phone numbers, or names of family members, pets, friends, and fantasy
+characters.
+> he password shall not be a word or number pattern like aaabbb, qwerty, zyxwvuts
+, 123321, “Welcome123” “Passwordl23” or “Changemel23”

@@ -1,0 +1,12 @@
+openai
+sentence-transformers
+langchain
+langchain-community
+langsmith
+pymupdf
+langchain-openai
+langchain-huggingface
+ipywidgets
+tf-keras
+faiss-cpu
+hf-xet
