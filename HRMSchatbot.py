@@ -18,17 +18,6 @@ db = FAISS.load_local("faiss_index_updated", embedding,allow_dangerous_deseriali
 
 
 
-loader = TextLoader("output_tex1.txt")
-documents = loader.load()
-documents[0].page_content
-
-splitter = CharacterTextSplitter(chunk_size=600,chunk_overlap=100, separator= '.')
-docs = splitter.split_documents(documents)
-
-db.save_local("faiss_index_updated")
-
-
-
 load_dotenv()
 api_key = os.getenv("together_api_key")
 
