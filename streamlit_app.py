@@ -1,5 +1,5 @@
 import streamlit as st
-from HRMSchatbot import qa_chain
+from HRMSchatbot import qa_chain, intent_chain, ack_chain
 
 st.set_page_config(page_title="HRMS Chatbot", page_icon="🤖", layout="centered")
 st.title("HR Assistant - Tara")
@@ -15,7 +15,11 @@ if st.button("Ask") or (user_input and st.session_state.get('last_input') != use
         st.session_state['last_input'] = user_input
         with st.spinner('Thinking...'):
             try:
-                response = qa_chain.run(user_input)
+                intent = intent_chain.run(query=user_input).strip().lower()
+                if intent == "ack":
+                    response = ack_chain.run(user_input)
+                else:
+                    response = qa_chain.run(user_input)
                 st.session_state['chat_history'].append((user_input, response))
             except Exception as e:
                 st.session_state['chat_history'].append((user_input, f"Error: {e}"))

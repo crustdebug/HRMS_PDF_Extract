@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pprint import pformat
-from HRMSchatbot import qa_chain  
+from HRMSchatbot import qa_chain, intent_chain, ack_chain
 import re
 
 app = FastAPI()
@@ -23,27 +23,22 @@ def is_gibberish(text):
     # A basic heuristic: text is gibberish if it contains no spaces and isn't found in dictionary
     return len(text.strip()) > 4 and not re.search(r"\s", text) and not re.search(r"[aeiouAEIOU]", text)
 
-ACKNOWLEDGEMENTS = [
-    "ok", "okay", "thanks", "thank you", "got it", "understood", "noted",
-    "yes", "yep", "yeah", "alright", "roger", "sure", "fine", "cool", "great", "perfect", "sounds good"
-]
-
-# Acknowledgement detector
-def is_genuine_acknowledgement(message):
-    # Normalize message
-    msg = message.strip().lower()
-    # Remove punctuation for better matching
-    msg = re.sub(r'[^\w\s]', '', msg)
-    # Check for exact match or phrase match
-    for ack in ACKNOWLEDGEMENTS:
-        if msg == ack or msg.startswith(ack + " ") or msg.endswith(" " + ack) or ack in msg.split():
-            return True
-    return False
 
 @app.post("/chat")
 async def chat(query: Query):
     try:
-        response = qa_chain.run(query.query.strip().lower())
+        user_input = query.query.strip()
+
+        if is_gibberish(user_input):
+            return JSONResponse(content={"response": "It seems like that was a typo. Could you please rephrase your question?"})
+
+        intent = intent_chain.run(query=user_input).strip().lower()
+
+        if intent == "ack":
+            response = ack_chain.run(user_input)
+            
+        else:
+            response = qa_chain.run(user_input)
 
         if isinstance(response, (dict, list)):
             formatted_output = pformat(response)
