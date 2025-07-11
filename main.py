@@ -21,36 +21,28 @@ class Query(BaseModel):
 
 def is_gibberish(text):
     # A basic heuristic: text is gibberish if it contains no spaces and isn't found in dictionary
-    return len(text.strip()) > 6 and not re.search(r"\s", text) and not re.search(r"[aeiouAEIOU]", text)
+    return len(text.strip()) > 4 and not re.search(r"\s", text) and not re.search(r"[aeiouAEIOU]", text)
 
-ACK_KEYWORDS = [
-    "ok", "okay", "thanks", "thank you", "cool", "alright", "sure", 
-    "noted", "got it", "fine", "great", "awesome", "nice", "understood", 
-    "done", "perfect", "k", "yup", "yes"
+ACKNOWLEDGEMENTS = [
+    "ok", "okay", "thanks", "thank you", "got it", "understood", "noted",
+    "yes", "yep", "yeah", "alright", "roger", "sure", "fine", "cool", "great", "perfect", "sounds good"
 ]
 
 # Acknowledgement detector
-def is_acknowledgement(text: str) -> bool:
-    cleaned = text.strip().lower()
-    cleaned = re.sub(r'[^\w\s]', '', cleaned)
-    for word in ACK_KEYWORDS:
-        if word in cleaned:
+def is_genuine_acknowledgement(message):
+    # Normalize message
+    msg = message.strip().lower()
+    # Remove punctuation for better matching
+    msg = re.sub(r'[^\w\s]', '', msg)
+    # Check for exact match or phrase match
+    for ack in ACKNOWLEDGEMENTS:
+        if msg == ack or msg.startswith(ack + " ") or msg.endswith(" " + ack) or ack in msg.split():
             return True
     return False
-
 
 @app.post("/chat")
 async def chat(query: Query):
     try:
-        user_input = query.query.strip().lower()
-
-        if is_gibberish(user_input):
-            return JSONResponse(content={"response": "It seems like that was a typo. Could you please rephrase your question?"})
-        
-        if is_acknowledgement(user_input):
-            qa_chain.memory.clear()
-            return JSONResponse(content={"response": "Do you have any other request?"})
-
         response = qa_chain.run(query.query.strip().lower())
 
         if isinstance(response, (dict, list)):
