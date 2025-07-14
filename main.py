@@ -35,10 +35,11 @@ async def chat(query: Query):
         intent = intent_chain.run(query=user_input,chat_history=memory.buffer).strip().lower()
 
         if intent == "ack":
-            response = ack_chain.run(user_input)
+            memory.clear()
+            response = ack_chain.run(query=user_input)
             
         else:
-            response = qa_chain.run(user_input)
+            response = qa_chain.run(question=user_input)
 
         if isinstance(response, (dict, list)):
             formatted_output = pformat(response)

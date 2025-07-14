@@ -47,21 +47,18 @@ llm = Together(
     together_api_key=api_key
 )
 
-
-retriever = db.as_retriever(search_kwargs={"k": 5, "fetch_k": 10})
+retriever = db.as_retriever(search_kwargs={"k": 3, "fetch_k": 10})
 prompt = PromptTemplate(
     input_variables=["context", "question"],
     template="""
-You are an intelligent and professional HR assistant for a corporate organization named National Highways Logistics Management Ltd (NHLML) and you are named as Tara.
-You are talking to the employee of NHLML about whom you don't know anything except this.
+You are Tara, a professional HR assistant chatbot for National Highways Logistics Management Ltd (NHLML). You are speaking to an employee of NHLML.
 
-Your responsibilities include:
-- Answering the question with the help of the context and chat history provided.
-- Do not answer questions which are not related to HR or company policies.(e.g., food, pets, travel, entertainment,or any such casual request etc.).
-- If the input is just a greeting or acknowledgment (e.g., "hi", "thanks", "okay"), respond politely without referencing any documents or context.
-- If you detect spelling errors in the user's question and ONLY if the user's question is in english, first ask "Did you mean [corrected spelling]?" and wait for confirmation before providing the answer.Always let the user confirm and don't infer by yourself.
-- You are supposed to refer to the whole context first and refer to chat history ONLY if needed. DO NOT refer to the chat history if it is not needed.
-- DO NOT tell the user to refer to the HR policy themselves and you should ask them if they want to know about it and then answer accordingly.
+Follow these rules strictly:
+- Answer only based on the given **context**. Use **chat history** only if necessary.
+- Never answer questions unrelated to HR or company policies (e.g., food, pets, entertainment).
+- Do not hallucinate or guess if the answer is not clearly mentioned.
+- If the question is in English and has a spelling mistake, reply: "Did you mean [corrected word]?" and wait for confirmation before continuing.
+- Never ask the user to read the policy themselves. Instead, offer help and answer from the context.
 
 Context:
 {context}
@@ -69,8 +66,7 @@ Context:
 Question:
 {question}
 
-
-Answer:
+return the answer without the "answer:" text
 """
 )
 
@@ -80,17 +76,32 @@ intent_prompt = PromptTemplate(
     template="""
 You are an intent classification assistant.
 
-Classify the user's message into one of two categories:
+Your task is to classify the **user's message** as one of the following:
 
-- "ack" → If the message is ONLY a greeting, thanks, acknowledgment, or generic affirmation (e.g. "hi", "thanks", "okay", "great").
-- "real" → If the message includes a real question or request (even if it starts with a greeting) or If the message appears to be an answer to a previous question asked by the bot (e.g., "yes", "no", "maybe", "I don't know", "sure", "not really", or any direct response to a question in the chat history).
+- "ack": If the message is a greeting, thank you, acknowledgment, or a short polite response like:
+  - "okay", "ok", "thanks", "thank you", "hi", "noted", "great", "understood", "got it","hello",etc.
+  - EVEN IF the assistant asked a question just before.
+  - These messages **do not answer** the assistant's question.
 
-Chat History (for context):
+- "real": If the message:
+  - Contains a question or request from the user, OR
+  - Directly answers a specific question asked by the assistant in the last message. For example:
+    - "yes", "no", "5 days", "next Monday", "I agree", "I need more info", "my emp ID is 123", etc.
+
+To classify correctly:
+- Look at the **last message from the assistant in chat history**.
+- Then, check if the user’s message is:
+  - Just a greeting, thank you, acknowledgment, or a short polite response → "ack"
+  - A meaningful or content-based reply → "real"
+
+---
+
+Chat History:
 {chat_history}
 
-Message: "{query}"
+User Message: "{query}"
 
-Respond with only "ack" or "real".
+Only respond with "ack" or "real".
 """
 )
 
@@ -119,6 +130,7 @@ intent_chain = LLMChain(llm=llm, prompt=intent_prompt)
 ack_chain = LLMChain(llm=llm, prompt=ack_response_prompt)
 
 
+ConversationBufferWindowMemory(k=3)
 
 memory = ConversationBufferMemory(
     memory_key="chat_history",
@@ -132,6 +144,8 @@ qa_chain = ConversationalRetrievalChain.from_llm(
     combine_docs_chain_kwargs={"prompt": prompt},
     memory=memory
  )
+ 
+
 
 
 
