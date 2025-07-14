@@ -1,3 +1,7 @@
 .env
 HRMSchatbot.ipynb
 __pycache__
+pdfs\HR-policy.pdf
+pdfs\HR-policy-text.pdf
+output_tex1.txt
+output_text.txt

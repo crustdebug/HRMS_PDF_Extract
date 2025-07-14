@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pprint import pformat
-from HRMSchatbot import qa_chain, intent_chain, ack_chain
+from HRMSchatbot import qa_chain, intent_chain, ack_chain, memory
 import re
 
 app = FastAPI()
@@ -32,7 +32,7 @@ async def chat(query: Query):
         if is_gibberish(user_input):
             return JSONResponse(content={"response": "It seems like that was a typo. Could you please rephrase your question?"})
 
-        intent = intent_chain.run(query=user_input).strip().lower()
+        intent = intent_chain.run(query=user_input,chat_history=memory.buffer).strip().lower()
 
         if intent == "ack":
             response = ack_chain.run(user_input)

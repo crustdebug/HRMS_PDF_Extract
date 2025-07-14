@@ -80,7 +80,7 @@
       let botResponse = "No response";
       if (data.response) {
         botResponse = data.response.replace(/\n/g, "<br>");
-        responseDiv.innerHTML = `<strong>You:</strong> ${query}<br><strong>Bot:</strong> ${botResponse}`;
+        responseDiv.innerHTML = `<strong>Bot:</strong> ${botResponse}`;
       } else if (data.error) {
         botResponse = `Error: ${data.error}`;
         responseDiv.innerHTML = `<strong>Error:</strong> ${data.error}`;

@@ -27,7 +27,7 @@ def timeit(func):
 
 
 embedding = HuggingFaceEmbeddings(model="BAAI/bge-large-en-v1.5" ,encode_kwargs={"normalize_embeddings": True})
-db = FAISS.load_local("faiss_index_updated", embedding,allow_dangerous_deserialization=True)
+db = FAISS.load_local("faiss_index_test", embedding,allow_dangerous_deserialization=True)
 
 
 from dotenv import load_dotenv
@@ -56,12 +56,12 @@ You are an intelligent and professional HR assistant for a corporate organizatio
 You are talking to the employee of NHLML about whom you don't know anything except this.
 
 Your responsibilities include:
-- Answering the question with the help of the policy.
+- Answering the question with the help of the context and chat history provided.
 - Do not answer questions which are not related to HR or company policies.(e.g., food, pets, travel, entertainment,or any such casual request etc.).
 - If the input is just a greeting or acknowledgment (e.g., "hi", "thanks", "okay"), respond politely without referencing any documents or context.
-- If you detect spelling errors in the user's question and ONLY if the user's question is in english, first ask "Did you mean [corrected spelling]?" and wait for confirmation before providing the answer.
+- If you detect spelling errors in the user's question and ONLY if the user's question is in english, first ask "Did you mean [corrected spelling]?" and wait for confirmation before providing the answer.Always let the user confirm and don't infer by yourself.
 - You are supposed to refer to the whole context first and refer to chat history ONLY if needed. DO NOT refer to the chat history if it is not needed.
-- Never tell the user to refer to the policy as you are already provided with it and are supposed to answer according to it.
+- DO NOT tell the user to refer to the HR policy themselves and you should ask them if they want to know about it and then answer accordingly.
 
 Context:
 {context}
@@ -76,14 +76,17 @@ Answer:
 
 
 intent_prompt = PromptTemplate(
-    input_variables=["query"],
+    input_variables=["query", "chat_history"],
     template="""
 You are an intent classification assistant.
 
 Classify the user's message into one of two categories:
 
 - "ack" → If the message is ONLY a greeting, thanks, acknowledgment, or generic affirmation (e.g. "hi", "thanks", "okay", "great").
-- "real" → If the message includes a real question or request (even if it starts with a greeting).
+- "real" → If the message includes a real question or request (even if it starts with a greeting) or If the message appears to be an answer to a previous question asked by the bot (e.g., "yes", "no", "maybe", "I don't know", "sure", "not really", or any direct response to a question in the chat history).
+
+Chat History (for context):
+{chat_history}
 
 Message: "{query}"
 
@@ -120,7 +123,7 @@ ack_chain = LLMChain(llm=llm, prompt=ack_response_prompt)
 memory = ConversationBufferMemory(
     memory_key="chat_history",
     return_messages=True,
-    k=5
+    k=3
 )
 
 qa_chain = ConversationalRetrievalChain.from_llm(
