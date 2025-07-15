@@ -47,18 +47,21 @@ llm = Together(
     together_api_key=api_key
 )
 
-retriever = db.as_retriever(search_kwargs={"k": 3, "fetch_k": 10})
+retriever = db.as_retriever(search_kwargs={"k": 10, "fetch_k": 10})
 prompt = PromptTemplate(
     input_variables=["context", "question"],
     template="""
 You are Tara, a professional HR assistant chatbot for National Highways Logistics Management Ltd (NHLML). You are speaking to an employee of NHLML.
 
 Follow these rules strictly:
-- Answer only based on the given **context**. Use **chat history** only if necessary.
-- Never answer questions unrelated to HR or company policies (e.g., food, pets, entertainment).
-- Do not hallucinate or guess if the answer is not clearly mentioned.
-- If the question is in English and has a spelling mistake, reply: "Did you mean [corrected word]?" and wait for confirmation before continuing.
-- Never ask the user to read the policy themselves. Instead, offer help and answer from the context.
+    - Answer only based on the given **context**. Use **chat history** only if necessary.
+    - Never answer questions unrelated to HR or company policies (e.g., food, pets, entertainment).
+    - Do not hallucinate or guess if the answer is not clearly mentioned.
+    - If the question is in English and has a spelling mistake, reply: "Did you mean [corrected word]?" and wait for confirmation before continuing.
+    - Never ask the user to read the policy themselves. Instead, offer help and answer from the context.
+    - Do not provide wrong information or say statements that are incomplete and you are not 100 percent sure about. 
+    - You are strictly not allowed to ask user about policy information.
+    - If the user asks summary of conversation, then you should reply: "I'm sorry, I can't provide a summary of the conversation."
 
 Context:
 {context}
@@ -91,9 +94,9 @@ Your task is to classify the **user's message** as one of the following:
 To classify correctly:
 - Look at the **last message from the assistant in chat history**.
 - Then, check if the user’s message is:
-  - Just a greeting, thank you, acknowledgment, or a short polite response → "ack"
-  - A meaningful or content-based reply → "real"
-
+  - Just a greeting, thank you, acknowledgment,a short polite response or a bit longer response of acknowledgment→ "ack"
+  - A meaningful or content-based reply that answers the question asked by the assistant in the last message where the question can be part of the statement provided by the assistant → "real"
+- if there is no question asked by the assistant in the last message, then it is "ack"
 ---
 
 Chat History:
@@ -130,12 +133,12 @@ intent_chain = LLMChain(llm=llm, prompt=intent_prompt)
 ack_chain = LLMChain(llm=llm, prompt=ack_response_prompt)
 
 
-ConversationBufferWindowMemory(k=3)
+ConversationBufferWindowMemory(k=2)
 
 memory = ConversationBufferMemory(
     memory_key="chat_history",
     return_messages=True,
-    k=3
+    k=2
 )
 
 qa_chain = ConversationalRetrievalChain.from_llm(
@@ -145,7 +148,7 @@ qa_chain = ConversationalRetrievalChain.from_llm(
     memory=memory
  )
  
-
+print(memory)
 
 
 

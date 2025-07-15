@@ -1,31 +1,16 @@
-import streamlit as st
-from HRMSchatbot import qa_chain, intent_chain, ack_chain
+import re
 
-st.set_page_config(page_title="HRMS Chatbot", page_icon="🤖", layout="centered")
-st.title("HR Assistant - Tara")
-st.write("Ask any HR or company policy related question.")
+with open("output_tex1.txt", "r", encoding="utf-8") as f:
+    text = f.read()
 
-if 'chat_history' not in st.session_state:
-    st.session_state['chat_history'] = []
+# Remove excess newlines and flatten content
+text = re.sub(r'\n{2,}', '\n', text)                  # Replace multiple newlines with one
+text = re.sub(r'[ \t]+', ' ', text)                   # Remove extra spaces
+text = re.sub(r'(?<=[a-zA-Z0-9])\n(?=[A-Z])', '. ', text)  # Add punctuation between lines if missing
+text = re.sub(r'(?<![.\n!?])\n', '. ', text)           # Add period if missing at end of line
+text = text.replace('\n', ' ').strip() 
+text = re.sub(r'\s*\)\s*', ' ', text)    
+text = re.sub(r'\s*\(\s*', ' ', text)                   # Final flattening
 
-user_input = st.text_input("Your question:", key="input")
-
-if st.button("Ask") or (user_input and st.session_state.get('last_input') != user_input):
-    if user_input:
-        st.session_state['last_input'] = user_input
-        with st.spinner('Thinking...'):
-            try:
-                intent = intent_chain.run(query=user_input).strip().lower()
-                if intent == "ack":
-                    response = ack_chain.run(user_input)
-                else:
-                    response = qa_chain.run(user_input)
-                st.session_state['chat_history'].append((user_input, response))
-            except Exception as e:
-                st.session_state['chat_history'].append((user_input, f"Error: {e}"))
-
-if st.session_state['chat_history']:
-    st.write("## Chat History")
-    for q, a in reversed(st.session_state['chat_history']):
-        st.markdown(f"**You:** {q}")
-        st.markdown(f"**Tara:** {a}") 
+with open("output_text.txt", "w", encoding="utf-8") as f:
+    f.write(text)
