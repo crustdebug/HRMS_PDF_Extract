@@ -1,41 +1,28 @@
-
-
-
-from langchain.text_splitter import CharacterTextSplitter
 from langchain.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
-import sentence_transformers
-from langchain.chains import ConversationalRetrievalChain, RetrievalQA
-from tqdm import tqdm
+from langchain.chains import ConversationalRetrievalChain
 from langchain.llms import Together
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
-
-
-import time
-from functools import wraps
-
-def timeit(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        start = time.time()
-        result = func(*args, **kwargs)
-        end = time.time()
-        print(f"Function '{func.__name__}' executed in {end - start:.4f} seconds")
-        return result
-    return wrapper
-
-
-embedding = HuggingFaceEmbeddings(model="BAAI/bge-large-en-v1.5" ,encode_kwargs={"normalize_embeddings": True})
-db = FAISS.load_local("faiss_index_test", embedding,allow_dangerous_deserialization=True)
-
-
 from dotenv import load_dotenv
 from langchain.memory import ConversationBufferMemory, ConversationSummaryMemory
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain import LLMChain
 import os
+import json
+
+with open('config_info/assistant_config.json', 'r', encoding='utf-8') as f:
+    bot_config = json.load(f)
+
+assistant_name = bot_config['assistant_name']
+company_name = bot_config['company_name']
+role = bot_config['role']
+rules = bot_config['rules']
+rules_str = "\n    - " + "\n    - ".join(rules)
+
+embedding = HuggingFaceEmbeddings(model="BAAI/bge-large-en-v1.5" ,encode_kwargs={"normalize_embeddings": True})
+db = FAISS.load_local("faiss_index_test", embedding,allow_dangerous_deserialization=True)
 
 load_dotenv()
 api_key = os.getenv("together_api_key")
@@ -49,19 +36,12 @@ llm = Together(
 
 retriever = db.as_retriever(search_kwargs={"k": 10, "fetch_k": 10})
 prompt = PromptTemplate(
-    input_variables=["context", "question"],
+    input_variables=["context", "question", "assistant_name", "company_name", "role", "rules_str"],
     template="""
-You are Tara, a professional HR assistant chatbot for National Highways Logistics Management Ltd (NHLML). You are speaking to an employee of NHLML.
+You are {assistant_name}, a {role} for {company_name}. You are speaking to an employee of {company_name}.
 
 Follow these rules strictly:
-    - Answer only based on the given **context**. Use **chat history** only if necessary.
-    - Never answer questions unrelated to HR or company policies (e.g., food, pets, entertainment).
-    - Do not hallucinate or guess if the answer is not clearly mentioned.
-    - If the question is in English and has a spelling mistake, reply: "Did you mean [corrected word]?" and wait for confirmation before continuing.
-    - Never ask the user to read the policy themselves. Instead, offer help and answer from the context.
-    - Do not provide wrong information or say statements that are incomplete and you are not 100 percent sure about. 
-    - You are strictly not allowed to ask user about policy information.
-    - If the user asks summary of conversation, then you should reply: "I'm sorry, I can't provide a summary of the conversation."
+    {rules_str}
 
 Context:
 {context}
@@ -71,6 +51,13 @@ Question:
 
 return the answer without the "answer:" text
 """
+)
+
+partial_prompt = prompt.partial(
+    assistant_name=assistant_name,
+    company_name=company_name,
+    role=role,
+    rules_str=rules_str
 )
 
 
@@ -109,9 +96,9 @@ Only respond with "ack" or "real".
 )
 
 ack_response_prompt = PromptTemplate(
-    input_variables=["query"],
+    input_variables=["query","assistant_name","company_name","role"],
     template="""
-You are Tara, a professional but friendly HR assistant at National Highways Logistics Management Ltd (NHLML).
+You are {assistant_name}, a {role} at {company_name}.
 
 The user has sent a greeting, acknowledgment, or polite message. Your job is to respond appropriately — warmly, professionally, and in a way that reflects what they said.
 For Example:
@@ -123,7 +110,7 @@ For Example:
 User said:
 "{query}"
 
-Tara's reply:
+{assistant_name}'s reply:
 """
 )
 
@@ -140,16 +127,17 @@ memory = ConversationBufferMemory(
     return_messages=True,
     k=2
 )
-
-qa_chain = ConversationalRetrievalChain.from_llm(
-    llm=llm,  
-    retriever=retriever,
-    combine_docs_chain_kwargs={"prompt": prompt},
-    memory=memory
- )
+user_memories = {}
+def get_user_memory(user_id: str):
+    if user_id not in user_memories:
+        user_memories[user_id] = ConversationBufferMemory(
+            memory_key="chat_history",
+            return_messages=True,
+            k=2
+        )
+    return user_memories[user_id]
+    
  
-print(memory)
-
 
 
 

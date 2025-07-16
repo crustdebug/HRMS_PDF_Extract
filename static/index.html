@@ -53,26 +53,62 @@
     <input type="text" id="query" placeholder="e.g. How many sick leaves do I get?">
     <button onclick="askQuestion()">Ask</button>
     <div id="response"></div>
+    <div id="chatLog"></div>
+    <button onclick="displayLog(userId)">Show Chat Log</button>
   </div>
 
  
  <script>
+  const userId = prompt("Enter test user ID");
+
+  function saveChatLog(userId, userMessage, botResponse) {
+  const key = `chatlog_${userId}`;
+  const history = JSON.parse(localStorage.getItem(key)) || [];
+
+  history.push({ user: userMessage, bot: botResponse });
+  localStorage.setItem(key, JSON.stringify(history));
+  }
+
+  function getChatLog(userId) {
+    const key = `chatlog_${userId}`;
+    return JSON.parse(localStorage.getItem(key)) || [];
+  }
+
+  function displayLog(userId) {
+    const log = getChatLog(userId);
+    const logText = log.map(item => `👤 ${item.user}\n🤖 ${item.bot}`).join("\n\n");
+    document.getElementById("chatLog").innerText = logText || "No history for this user.";
+  }
 
   async function askQuestion() {
     const query = document.getElementById("query").value.trim();
     const responseDiv = document.getElementById("response");
+          // Generate and store user_id on first load
+    if (!localStorage.getItem("user_id")) {
+       const userId = "user-" + crypto.randomUUID();  // example: user-bd6d7312-...
+       localStorage.setItem("user_id", userId);
+    }
+
+    // Retrieve user_id for use
+
+    //const userId = localStorage.getItem("user_id");
+    
 
     if (!query) return;
-
+    
     responseDiv.innerHTML = "Thinking...";
 
     try {
+      const payload = {
+      user_id: userId,
+      query: query,
+      };
       const res = await fetch("http://127.0.0.1:8000/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({ query, user_id: userId })
       });
 
       const data = await res.json();
@@ -85,6 +121,8 @@
         botResponse = `Error: ${data.error}`;
         responseDiv.innerHTML = `<strong>Error:</strong> ${data.error}`;
       }
+
+      saveChatLog(userId, query, botResponse);
 
     } catch (err) {
       responseDiv.innerHTML = `<strong>Network Error:</strong> ${err.message}`;
