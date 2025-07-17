@@ -17,20 +17,19 @@ from app.utils.memory_manager import get_user_memory
 
 import os
 
-embedding = HuggingFaceEmbeddings(model="BAAI/bge-large-en-v1.5" ,encode_kwargs={"normalize_embeddings": True})
-db = FAISS.load_local("data/faiss_index_test", embedding,allow_dangerous_deserialization=True)
+embedding = HuggingFaceEmbeddings(model="thenlper/gte-large" ,encode_kwargs={"normalize_embeddings": True})
+db = FAISS.load_local("data/faiss_index_recent", embedding,allow_dangerous_deserialization=True)
 
 load_dotenv()
 api_key = os.getenv("together_api_key")
-
 
 llm = Together(
 model="lgai/exaone-3-5-32b-instruct",
     temperature=0,
     together_api_key=api_key
-)
+)  
 
-retriever = db.as_retriever(search_kwargs={"k": 10, "fetch_k": 10})
+retriever = db.as_retriever(search_kwargs={"k": 20, "fetch_k": 25})
 
 intent_chain = LLMChain(llm=llm, prompt=intent_prompt)
 ack_chain = LLMChain(llm=llm, prompt=ack_response_prompt)

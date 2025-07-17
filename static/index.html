@@ -3,70 +3,49 @@
 <head>
   <meta charset="UTF-8">
   <title>HR Chatbot</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      margin: 0;
-      padding: 20px;
+      background: #f8f9fa;
     }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background: #fff;
+    .chatbox {
+      background: #ffffff;
+      padding: 20px;
       border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
     }
-    h2 {
-      color: #333;
+    .chat-log {
+      margin-top: 15px;
+      max-height: 400px;
+      overflow-y: auto;
     }
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #45a049;
-    }
-    #response {
-      margin-top: 20px;
-      background: #eaeaea;
-      padding: 15px;
-      border-radius: 5px;
-      font-family: monospace;
-      white-space: pre-wrap;
+    .chat-card {
+      margin-bottom: 1rem;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>HR Assistant</h2>
-    <input type="text" id="query" placeholder="e.g. How many sick leaves do I get?">
-    <button onclick="askQuestion()">Ask</button>
-    <div id="response"></div>
-    <div id="chatLog"></div>
-    <button onclick="displayLog(userId)">Show Chat Log</button>
+  <div class="container mt-5">
+    <div class="chatbox">
+      <h2 class="mb-4">🤖 Tara – HR Assistant</h2>
+      <input type="text" id="query" class="form-control" placeholder="e.g. How many sick leaves do I get?">
+      <button class="btn btn-success mt-2" onclick="askQuestion()">Ask</button>
+      <button class="btn btn-outline-primary mt-2" onclick="test()">Run Automated Tests</button>
+      <button class="btn btn-outline-secondary mt-2" onclick="displayLog(userId)">Show Chat Log</button>
+
+      <div id="response" class="mt-4"></div>
+      <div id="chatLog" class="chat-log mt-3"></div>
+    </div>
   </div>
 
- 
- <script>
+<script>
   const userId = prompt("Enter test user ID");
 
   function saveChatLog(userId, userMessage, botResponse) {
-  const key = `chatlog_${userId}`;
-  const history = JSON.parse(localStorage.getItem(key)) || [];
-
-  history.push({ user: userMessage, bot: botResponse });
-  localStorage.setItem(key, JSON.stringify(history));
+    const key = `chatlog_${userId}`;
+    const history = JSON.parse(localStorage.getItem(key)) || [];
+    history.push({ user: userMessage, bot: botResponse });
+    localStorage.setItem(key, JSON.stringify(history));
   }
 
   function getChatLog(userId) {
@@ -76,33 +55,38 @@
 
   function displayLog(userId) {
     const log = getChatLog(userId);
-    const logText = log.map(item => `👤 ${item.user}\n🤖 ${item.bot}`).join("\n\n");
-    document.getElementById("chatLog").innerText = logText || "No history for this user.";
+    const chatLogDiv = document.getElementById("chatLog");
+    chatLogDiv.innerHTML = log.map(item => `
+      <div class="card chat-card">
+        <div class="card-body">
+          <p><span class="badge bg-secondary">👤 You</span> ${item.user}</p>
+          <p><span class="badge bg-success">🤖 Tara</span> ${item.bot}</p>
+        </div>
+      </div>
+    `).join('') || "<div class='text-muted'>No history for this user.</div>";
   }
 
   async function askQuestion() {
     const query = document.getElementById("query").value.trim();
     const responseDiv = document.getElementById("response");
-          // Generate and store user_id on first load
+
     if (!localStorage.getItem("user_id")) {
-       const userId = "user-" + crypto.randomUUID();  // example: user-bd6d7312-...
-       localStorage.setItem("user_id", userId);
+      const userId = "user-" + crypto.randomUUID();
+      localStorage.setItem("user_id", userId);
     }
 
-    // Retrieve user_id for use
-
-    //const userId = localStorage.getItem("user_id");
-    
-
     if (!query) return;
-    
-    responseDiv.innerHTML = "Thinking...";
+
+    responseDiv.innerHTML = `
+      <div class="card chat-card">
+        <div class="card-body">
+          <p><span class="badge bg-secondary">👤 You</span> ${query}</p>
+          <p class="text-muted">Thinking...</p>
+        </div>
+      </div>
+    `;
 
     try {
-      const payload = {
-      user_id: userId,
-      query: query,
-      };
       const res = await fetch("http://127.0.0.1:8000/chat", {
         method: "POST",
         headers: {
@@ -112,25 +96,128 @@
       });
 
       const data = await res.json();
+      const botResponse = data.response ? data.response.replace(/\n/g, "<br>") : (data.error || "No response");
 
-      let botResponse = "No response";
-      if (data.response) {
-        botResponse = data.response.replace(/\n/g, "<br>");
-        responseDiv.innerHTML = `<strong>Tara:</strong> ${botResponse}`;
-      } else if (data.error) {
-        botResponse = `Error: ${data.error}`;
-        responseDiv.innerHTML = `<strong>Error:</strong> ${data.error}`;
-      }
-
+      responseDiv.innerHTML = `
+        <div class="card chat-card">
+          <div class="card-body">
+            <p><span class="badge bg-secondary">👤 You</span> ${query}</p>
+            <p><span class="badge bg-success">🤖 Tara</span> ${botResponse}</p>
+          </div>
+        </div>
+      `;
       saveChatLog(userId, query, botResponse);
-
     } catch (err) {
-      responseDiv.innerHTML = `<strong>Network Error:</strong> ${err.message}`;
+      responseDiv.innerHTML = `
+        <div class="card chat-card">
+          <div class="card-body">
+            <p class="text-danger"><strong>Network Error:</strong> ${err.message}</p>
+          </div>
+        </div>
+      `;
     }
   }
+
+  async function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async function test() {
+    const testQuestions = [
+        // ✅ Simple / factual
+  
+  "If I join on 15th March, how much casual leave will I get for that year?",
+
+  // 🔥 Advanced reasoning, logic, conflict, cross-policy, and ambiguous scenarios
+  "If my probation ends mid-month and I take 3 sick leaves after that, do they get counted as paid or unpaid?",
+  "Can I take maternity leave followed by casual leave, followed by half-pay leave, then work from home for 2 weeks?",
+  "I’ve been deputed from NHAI to NHLML but my parent org approved travel claims differently — whose policy wins?",
+  "If I exhaust casual and sick leave and fall ill again, does it become leave without pay or can earned leave be used automatically?",
+  "If a holiday falls on the last day of my earned leave stretch, does it reduce my leave count?",
+  "What happens to restricted holidays if I resign mid-year and haven’t used any? Are they encashable?",
+  "My child is born pre-term — does maternity leave start from birth or from the EDD in the policy?",
+  "Can I club study leave with earned leave, casual leave, and restricted holiday to extend my course preparation time?",
+  "During transfer, if I opt for company-arranged transport but also claim relocation allowance, will it be deducted?",
+  "If I don’t submit proof for LTC travel within the financial year, can I submit it in the next year and still claim it?",
+  "If I joined on 23rd August, how many EL, CL, and RH will I earn till December? Assume standard accruals.",
+  "How is HRA adjusted if I’m on tour for 40% of the month and then move to a city with lower HRA?",
+  "If I take 5 earned leaves in February (28 days), how does it affect my leave balance compared to March (31 days)?",
+  "Can I earn full 30 days EL if I take 3 sick leaves every quarter, assuming 1.5 EL accrual per month?",
+  "Is it true that one gets extra earned leave credit if they work through declared holidays in a financial year?",
+  "If one policy says 'minimum 15 years of service for VRS' but another says '10 years for special category,' which applies to women employees?",
+  "The deputation order says I’m governed by my parent org rules, but NHLML’s HR says I must follow theirs — who’s right?",
+  "If my joining letter promised leased car benefit but the updated HR manual removed it, am I still eligible?",
+  "The leave policy says EL can be accumulated for 300 days, but payroll cutoff shows max 240 — which applies for encashment?",
+  "My work-from-home approval contradicts my department's onsite policy — is there any precedence in HR rules to resolve this?",
+  "I heard some teams can take compensatory offs for weekend deployments — is that true and where is it documented?",
+  "If the Director verbally allowed me extended study leave but HR disagrees, what holds legally?",
+  "Can I combine past year’s unused RH with this year’s quota if I missed applying before April?",
+  "Is there a cap on consecutive work-from-home days even if I have back-to-back approvals?",
+  "If my reporting manager differs from my HR admin contact, whose approval counts in emergency leave escalation?",
+  "If I took maternity leave last year and resigned, but rejoined after 8 months, can I claim ML again if I’m pregnant again?",
+  "What are the rules for disciplinary action if leave is misreported multiple times, but with valid medical slips?",
+  "I used casual leave during election duty — is that counted as civic duty or personal leave?",
+  "Can RH be availed for religious festivals not mentioned in the predefined RH list if my department head agrees?",
+  "If an employee dies while on deputation, which organization pays final settlement and insurance — parent or host?"
+    ];
+
+    const responseDiv = document.getElementById("response");
+    responseDiv.innerHTML = `<div class="alert alert-info">🧪 Testing started...</div>`;
+
+    for (let i = 0; i < testQuestions.length; i++) {
+      const query = testQuestions[i];
+      const cardId = `test-q${i}`;
+
+      // show initial card with thinking
+      responseDiv.innerHTML += `
+        <div class="card chat-card" id="${cardId}">
+          <div class="card-body">
+            <p><span class="badge bg-secondary">👤 Q${i + 1}:</span> ${query}</p>
+            <p class="text-muted">Thinking...</p>
+          </div>
+        </div>
+      `;
+
+      await delay(1500);
+
+      try {
+        const res = await fetch("http://127.0.0.1:8000/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ query, user_id: userId })
+        });
+
+        const data = await res.json();
+        const botResponse = data.response ? data.response.replace(/\n/g, "<br>") : (data.error || "No response");
+
+        const finalCard = `
+          <div class="card chat-card">
+            <div class="card-body">
+              <p><span class="badge bg-secondary">👤 Q${i + 1}:</span> ${query}</p>
+              <p><span class="badge bg-success">🤖 Tara:</span> ${botResponse}</p>
+            </div>
+          </div>
+        `;
+
+        document.getElementById(cardId).outerHTML = finalCard;
+        saveChatLog(userId, query, botResponse);
+      } catch (err) {
+        document.getElementById(cardId).outerHTML = `
+          <div class="card chat-card">
+            <div class="card-body text-danger">
+              <p><strong>Error:</strong> ${err.message}</p>
+            </div>
+          </div>
+        `;
+      }
+
+      await delay(1000);
+    }
+
+    responseDiv.innerHTML += `<div class="alert alert-success mt-3">✅ Testing completed.</div>`;
+  }
 </script>
-
-
-
 </body>
 </html>
