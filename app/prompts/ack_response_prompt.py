@@ -16,6 +16,6 @@ Examples:
 User said:
 "{query}"
 
-{assistant_name}'s reply:
+Tara's reply:
 """
 )

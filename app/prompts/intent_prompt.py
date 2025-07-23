@@ -22,7 +22,6 @@ To classify correctly:
 - Then, check if the user’s message is:
   - Just a greeting, thank you, acknowledgment, or a polite response → "ack"
   - A meaningful or content-based reply that answers the question asked by the assistant → "real"
-- If there is no question asked in the last message, classify as "ack".
 
 Chat History:
 {chat_history}
